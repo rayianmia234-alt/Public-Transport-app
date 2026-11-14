@@ -1,0 +1,119 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Poth – Bangladesh Transit Navigator</title>
+<style>
+:root{--bg:#f4f6f3;--sf:#fff;--tx:#14211b;--mu:#5d6b64;--bd:#dde3dd;--ac:#0a7a4b;--g:#2fa36b;--a:#e8a21a;--r:#d6453d;--map:#eef2ee;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1713;--sf:#18221c;--tx:#e8efe9;--mu:#98a79e;--bd:#2a3730;--ac:#3cc287;--map:#121c16;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0f1713;--sf:#18221c;--tx:#e8efe9;--mu:#98a79e;--bd:#2a3730;--ac:#3cc287;--map:#121c16;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI","Noto Sans Bengali",sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;background:var(--ac);color:#fff}
+header h1{font-size:17px;margin:0}header small{opacity:.85;display:block;font-weight:400;font-size:12px}
+button,select{font:inherit;color:var(--tx)}
+.lang{background:#ffffff26;border:1px solid #ffffff66;color:#fff;border-radius:16px;padding:4px 12px;cursor:pointer}
+main{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:12px;padding:12px;max-width:1300px;margin:auto}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em;color:var(--mu)}
+label{display:block;font-size:12px;color:var(--mu);margin:6px 0 2px}
+select{width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg)}
+.go{width:100%;margin-top:10px;padding:10px;background:var(--ac);color:#fff;border:0;border-radius:8px;font-weight:600;cursor:pointer}
+.swap{background:none;border:0;color:var(--ac);cursor:pointer;padding:4px 0}
+.opt{border:1px solid var(--bd);border-radius:10px;padding:10px;margin-top:8px;cursor:pointer}
+.opt.on{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac) inset}
+.opt .top{display:flex;justify-content:space-between;align-items:baseline}.big{font-size:20px;font-weight:700}
+.tag{font-size:11px;background:var(--ac);color:#fff;border-radius:10px;padding:1px 8px}
+.leg{display:flex;gap:6px;align-items:center;margin-top:5px;font-size:13px}
+.chip{color:#fff;border-radius:6px;padding:1px 7px;font-weight:600;font-size:12px;white-space:nowrap}
+.mu{color:var(--mu);font-size:12px}
+table{width:100%;border-collapse:collapse}td{padding:5px 2px;border-top:1px solid var(--bd)}td:last-child{text-align:right;font-weight:700}
+.mapwrap{position:sticky;top:8px}
+svg{width:100%;height:auto;display:block;background:var(--map);border-radius:12px;border:1px solid var(--bd)}
+.stop{cursor:pointer}.stop text{font-size:10.5px;fill:var(--tx);paint-order:stroke;stroke:var(--map);stroke-width:3px}
+.bus{transition:transform 1s linear}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--mu)}
+.dot{display:inline-block;width:18px;height:6px;border-radius:3px;margin-right:4px;vertical-align:middle}
+.note{font-size:12px;color:var(--mu)}
+</style></head><body>
+<header><div><h1 id="t">Poth – Dhaka Transit Navigator</h1><small id="sub"></small></div><button class="lang" id="lb">বাংলা</button></header>
+<main>
+<section>
+ <div class="card"><h2 id="h1"></h2>
+  <label id="lf"></label><select id="from"></select>
+  <button class="swap" id="sw">⇅</button>
+  <label id="lt"></label><select id="to"></select>
+  <button class="go" id="go"></button>
+  <div id="res"></div></div>
+ <div class="card"><h2 id="h2"></h2><div id="arr" class="mu"></div></div>
+ <div class="card note" id="foot"></div>
+</section>
+<section class="mapwrap"><svg id="map" viewBox="60 10 640 530" role="img" aria-label="Network map"></svg>
+ <div class="legend"><span><i class="dot" style="background:var(--g)"></i><b id="l1"></b></span><span><i class="dot" style="background:var(--a)"></i><b id="l2"></b></span><span><i class="dot" style="background:var(--r)"></i><b id="l3"></b></span><span id="clock"></span></div></section>
+</main>
+<script>
+const S=[["Uttara","উত্তরা",430,40],["Airport","বিমানবন্দর",450,100],["Banani","বনানী",520,160],["Mohakhali","মহাখালী",470,205],["Gulshan 2","গুলশান ২",580,200],["Badda","বাড্ডা",640,240],["Rampura","রামপুরা",600,300],["Malibagh","মালিবাগ",540,320],["Farmgate","ফার্মগেট",400,250],["Mirpur 10","মিরপুর ১০",300,150],["Mirpur 1","মিরপুর ১",240,200],["Gabtoli","গাবতলী",130,250],["Mohammadpur","মোহাম্মদপুর",200,310],["Dhanmondi","ধানমন্ডি",290,340],["Science Lab","সায়েন্স ল্যাব",370,330],["Shahbag","শাহবাগ",440,340],["Gulistan","গুলিস্তান",500,420],["Motijheel","মতিঝিল",560,400],["Kamalapur","কমলাপুর",620,400],["Sadarghat","সদরঘাট",470,500],["Jatrabari","যাত্রাবাড়ী",640,490]];
+const L=[{n:"U1 Uttara–Motijheel",c:"#0a7a4b",s:[0,1,2,3,8,15,17],h:8},{n:"M2 Gabtoli–Rampura",c:"#2b6cd9",s:[11,10,9,3,4,5,6],h:10},{n:"D3 Mohammadpur–Sadarghat",c:"#8e44ad",s:[12,13,14,15,16,19],h:9},{n:"E4 Rampura–Jatrabari",c:"#c2410c",s:[6,7,17,18,20],h:12},{n:"F5 Gabtoli–Farmgate",c:"#0e7490",s:[11,12,13,14,8],h:7},{n:"J6 Motijheel–Jatrabari",c:"#a21caf",s:[17,16,19,20],h:11}];
+const TX={en:{sub:"Live-style bus tracking, traffic & smart routing",h1:"Plan a journey",lf:"From",lt:"To",go:"Find best routes",h2:"Live arrivals",l1:"Free flow",l2:"Slow",l3:"Congested",pick:"Tap a stop on the map or pick From/To.",min:"min",wait:"wait",tr:"transfers",direct:"Direct",fast:"Fastest",few:"Fewest transfers",alt:"Alternative",none:"No route found.",sel:"Arrivals at",toward:"→",foot:"Demo mode: traffic and bus positions are simulated. To go live, swap the simulation for a GTFS-Realtime / operator GPS feed and add Google Maps JavaScript API’s TrafficLayer (needs your own API key and a host that allows maps.googleapis.com). The routing engine already reads per-segment congestion, so real delay data plugs straight in."},bn:{sub:"লাইভ বাস ট্র্যাকিং, ট্রাফিক ও স্মার্ট রুট",h1:"যাত্রা পরিকল্পনা",lf:"শুরু",lt:"গন্তব্য",go:"সেরা রুট খুঁজুন",h2:"লাইভ আগমন",l1:"স্বাভাবিক",l2:"ধীর",l3:"জ্যাম",pick:"মানচিত্রে স্টপ ট্যাপ করুন বা শুরু/গন্তব্য বাছুন।",min:"মিনিট",wait:"অপেক্ষা",tr:"বার বদল",direct:"সরাসরি",fast:"দ্রুততম",few:"কম বদল",alt:"বিকল্প",none:"রুট পাওয়া যায়নি।",sel:"আগমন:",toward:"→",foot:"ডেমো মোড: ট্রাফিক ও বাসের অবস্থান সিমুলেটেড। লাইভ করতে GTFS-Realtime/অপারেটর GPS ফিড এবং Google Maps TrafficLayer যুক্ত করুন (নিজস্ব API কী লাগবে)।"}};
+let lang="en",selStop=null,opts=[],cur=0;const $=i=>document.getElementById(i),T=k=>TX[lang][k],nm=i=>S[i][lang=="en"?0:1];
+const key=(a,b)=>a<b?a+"-"+b:b+"-"+a,dist=(a,b)=>Math.hypot(S[a][2]-S[b][2],S[a][3]-S[b][3]);
+const C={};L.forEach(l=>l.s.slice(1).forEach((b,i)=>{C[key(l.s[i],b)]=Math.random()*.6}));
+const seg=(a,b)=>dist(a,b)*.09*(1+2.2*C[key(a,b)]);
+const km=(a,b)=>dist(a,b)*.04;
+// buses
+const B=[];L.forEach((l,li)=>{for(let k=0;k<3;k++)B.push({l:li,p:(l.s.length-1)*(k/3)+Math.random()*.5,d:k%2?-1:1})});
+// routing: Dijkstra over (stop,line) states
+function route(f,t,pen){const D={},R={},P={},V={};const k=(s,l)=>s+"|"+l;
+ L.forEach((l,li)=>l.s.forEach(s=>{D[k(s,li)]=1e9}));
+ L.forEach((l,li)=>{if(l.s.includes(f)){D[k(f,li)]=l.h/2;R[k(f,li)]=l.h/2}});
+ for(;;){let u=null,m=1e9;for(const x in D)if(!V[x]&&D[x]<m){m=D[x];u=x}if(!u)break;V[u]=1;
+  const[s,li]=u.split("|").map(Number),l=L[li],i=l.s.indexOf(s);
+  const rel=(v,w,r)=>{if(D[v]>w){D[v]=w;R[v]=r;P[v]=u}};
+  [-1,1].forEach(d=>{const j=i+d;if(j<0||j>=l.s.length)return;const n=l.s[j],c=seg(s,n);rel(k(n,li),D[u]+c,R[u]+c)});
+  L.forEach((o,oi)=>{if(oi!==li&&o.s.includes(s)){const c=pen+3+o.h/2,rc=3+o.h/2;rel(k(s,oi),D[u]+c,R[u]+rc)}})}
+ let best=null;L.forEach((l,li)=>{if(l.s.includes(t)){const x=k(t,li);if(!best||D[x]<D[best])best=x}});
+ if(!best||D[best]>=1e9)return null;
+ const path=[];for(let x=best;x;x=P[x])path.unshift(x.split("|").map(Number));
+ const legs=[];path.forEach(([s,li])=>{const g=legs[legs.length-1];if(g&&g.l===li)g.st.push(s);else legs.push({l:li,st:[s]})});
+ let fare=0,ride=0;legs.forEach(g=>{let a=0,t2=0;g.st.forEach((s,i)=>{if(i){a+=km(g.st[i-1],s);t2+=seg(g.st[i-1],s)}});g.km=a;g.m=t2;ride+=t2;fare+=Math.max(10,Math.round(a*2.4))});
+ return{legs,total:Math.round(R[best]),ride:Math.round(ride),wait:Math.round(R[best]-ride),fare,sig:legs.map(g=>g.l+":"+g.st[0]).join()}}
+function find(){const f=+$("from").value,t=+$("to").value;if(f===t){$("res").innerHTML="";opts=[];draw();return}
+ const seen={};opts=[];[0,12,40].forEach(p=>{const r=route(f,t,p);if(r&&!seen[r.sig]){seen[r.sig]=1;opts.push(r)}});
+ opts.sort((a,b)=>a.total-b.total);cur=Math.min(cur,opts.length-1);renderRes();draw()}
+function renderRes(){if(!opts.length){$("res").innerHTML=`<p class="mu">${T("none")}</p>`;return}
+ const mt=Math.min(...opts.map(o=>o.legs.length));
+ $("res").innerHTML=opts.map((o,i)=>{const tag=i==0?T("fast"):o.legs.length==mt?T("few"):T("alt");
+ return`<div class="opt ${i==cur?"on":""}" data-i="${i}"><div class="top"><span class="big">${o.total} ${T("min")}</span><span class="tag">${tag}</span></div>
+ <div class="mu">৳${o.fare} · ${o.legs.length>1?o.legs.length-1+" "+T("tr"):T("direct")} · ${T("wait")} ~${o.wait} ${T("min")}</div>
+ ${o.legs.map(g=>`<div class="leg"><span class="chip" style="background:${L[g.l].c}">${L[g.l].n.split(" ")[0]}</span>${nm(g.st[0])} ${T("toward")} ${nm(g.st[g.st.length-1])} <span class="mu">· ${Math.round(g.m)} ${T("min")}</span></div>`).join("")}</div>`}).join("");
+ document.querySelectorAll(".opt").forEach(e=>e.onclick=()=>{cur=+e.dataset.i;renderRes();draw()})}
+// ETA of a bus to stop index k on its line
+function eta(b,k){const l=L[b.l];let pos=b.p,dir=b.d,t=0;
+ for(let n=0;n<40;n++){const nx=dir>0?Math.floor(pos+1e-9)+1:Math.ceil(pos-1e-9)-1,sm=seg(l.s[Math.min(Math.floor(Math.min(pos,nx)+1e-9),l.s.length-2)],l.s[Math.min(Math.floor(Math.min(pos,nx)+1e-9)+1,l.s.length-1)]);
+  if((dir>0&&k>=pos&&k<=nx)||(dir<0&&k<=pos&&k>=nx))return t+sm*Math.abs(k-pos);
+  t+=sm*Math.abs(nx-pos);pos=nx;if(pos<=0)dir=1;else if(pos>=l.s.length-1)dir=-1}return t}
+function arrivals(){const el=$("arr");if(selStop===null){el.textContent=T("pick");return}
+ const rows=[];L.forEach((l,li)=>{const k=l.s.indexOf(selStop);if(k<0)return;B.filter(b=>b.l===li).forEach(b=>rows.push({li,m:eta(b,k),to:l.s[b.d>0?l.s.length-1:0]}))});
+ rows.sort((a,b)=>a.m-b.m);
+ el.innerHTML=`<b style="color:var(--tx)">${T("sel")} ${nm(selStop)}</b><table>`+rows.slice(0,7).map(r=>`<tr><td><span class="chip" style="background:${L[r.li].c}">${L[r.li].n.split(" ")[0]}</span> ${T("toward")} ${nm(r.to)}</td><td>${Math.max(1,Math.round(r.m))} ${T("min")}</td></tr>`).join("")+"</table>"}
+// map
+const NS="http://www.w3.org/2000/svg",map=$("map");
+const col=c=>c<.3?"var(--g)":c<.6?"var(--a)":"var(--r)";
+function draw(){let h="";
+ Object.keys(C).forEach(k=>{const[a,b]=k.split("-").map(Number);h+=`<line x1="${S[a][2]}" y1="${S[a][3]}" x2="${S[b][2]}" y2="${S[b][3]}" stroke="${col(C[k])}" stroke-width="7" stroke-linecap="round" opacity=".85"/>`});
+ L.forEach(l=>h+=`<polyline fill="none" stroke="${l.c}" stroke-width="1.8" stroke-dasharray="1 5" stroke-linecap="round" points="${l.s.map(s=>S[s][2]+","+S[s][3]).join(" ")}"/>`);
+ if(opts[cur])opts[cur].legs.forEach(g=>h+=`<polyline fill="none" stroke="${L[g.l].c}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" points="${g.st.map(s=>S[s][2]+","+S[s][3]).join(" ")}" style="filter:drop-shadow(0 0 4px ${L[g.l].c})"/>`);
+ const f=+$("from").value,t=+$("to").value;
+ S.forEach((s,i)=>{const e=i==f||i==t||i===selStop;h+=`<g class="stop" data-i="${i}"><circle cx="${s[2]}" cy="${s[3]}" r="${e?8:5.5}" fill="var(--sf)" stroke="${i==t?"var(--r)":i==f?"var(--ac)":"var(--tx)"}" stroke-width="2.5"/><text x="${s[2]+9}" y="${s[3]+4}">${nm(i)}</text></g>`});
+ h+=`<g id="bl">${B.map((b,i)=>`<g class="bus" id="b${i}"><circle r="8" fill="${L[b.l].c}" stroke="#fff" stroke-width="2"/><text y="3.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff" style="stroke:none">${L[b.l].n[1]==" "?L[b.l].n[0]:L[b.l].n.slice(0,2)}${L[b.l].n[1]}</text></g>`).join("")}</g>`;
+ map.innerHTML=h;map.querySelectorAll(".stop").forEach(e=>e.onclick=()=>{selStop=+e.dataset.i;arrivals();draw()});place()}
+function place(){B.forEach((b,i)=>{const l=L[b.l],a=Math.min(Math.floor(b.p),l.s.length-2),fr=b.p-a,p=S[l.s[a]],q=S[l.s[a+1]],g=$("b"+i);if(g)g.style.transform=`translate(${p[2]+(q[2]-p[2])*fr}px,${p[3]+(q[3]-p[3])*fr}px)`})}
+function step(){B.forEach(b=>{const l=L[b.l];let a=Math.min(Math.floor(b.p+(b.d<0?-1e-9:0)),l.s.length-2);a=Math.max(a,0);
+ b.p+=b.d*.5/seg(l.s[a],l.s[a+1]);if(b.p>=l.s.length-1){b.p=l.s.length-1;b.d=-1}if(b.p<=0){b.p=0;b.d=1}});place();arrivals()}
+function traffic(){const rush=.15;Object.keys(C).forEach(k=>{let c=C[k]+(Math.random()-.5)*.22+(Math.random()<.03?.4:0);C[k]=Math.max(0,Math.min(1,c*.97+rush*.03))});draw();if(opts.length)find()}
+function tick(){$("clock").textContent="● "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+function ui(){["sub","h1","lf","lt","go","h2","l1","l2","l3"].forEach(i=>$(i=="sub"?"sub":i).textContent=T(i));$("foot").textContent=T("foot");$("lb").textContent=lang=="en"?"বাংলা":"English";
+ const v=[$("from").value,$("to").value];["from","to"].forEach((id,n)=>{$(id).innerHTML=S.map((s,i)=>`<option value="${i}">${nm(i)}</option>`).join("");$(id).value=v[n]||(n?17:0)});renderRes();arrivals();draw()}
+$("lb").onclick=()=>{lang=lang=="en"?"bn":"en";document.documentElement.lang=lang;ui()};
+$("go").onclick=()=>{cur=0;find()};$("sw").onclick=()=>{const a=$("from").value;$("from").value=$("to").value;$("to").value=a;cur=0;find()};
+$("from").onchange=$("to").onchange=()=>{cur=0;find()};
+ui();$("from").value=0;$("to").value=17;find();tick();
+setInterval(step,1000);setInterval(traffic,6000);setInterval(tick,1000);
+</script></body></html>
